@@ -109,7 +109,21 @@ class ComplaintResource extends Resource
             ])
            ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make()
-                ->visible(fn () => filament()->getCurrentPanel()->getId() === 'admin'),
+                ->visible(fn () => filament()->getCurrentPanel()->getId() === 'admin')
+                ->before(function ($records) {
+                    foreach ($records as $record) {
+                        if ($record->status === 'in_progress') {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Deletion Blocked')
+                                ->body("Complaint ID {$record->id} is in progress and cannot be deleted.")
+                                ->danger()
+                                ->send();
+
+                            // Abort without throwing the Notification object
+                            abort(403, "Some complaints can't be deleted.");
+                        }
+                    }
+                }),
             ]);
     }
 
